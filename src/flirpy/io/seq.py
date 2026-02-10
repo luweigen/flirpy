@@ -214,11 +214,20 @@ class Splitter:
 
         logger.debug("Processing {}".format(input_file))
 
+        # In SEQ files, only the first frame contains complete calibration
+        # parameters (Emissivity, Planck constants, etc.) in its BasicData
+        # record. Subsequent frames have zeroed-out metadata. We capture the
+        # first frame's metadata and reuse it for all frames.
+        first_frame_meta = None
+
         for count, frame in enumerate(tqdm(self._get_seq(input_file))):
 
             if frame.meta is None:
                 self.frame_count += 1
                 continue
+
+            if first_frame_meta is None and frame.meta.get("Emissivity", 0) > 0:
+                first_frame_meta = dict(frame.meta)
 
             if self.split_filetypes:
                 self._make_split_folders(output_subfolder)
@@ -274,7 +283,9 @@ class Splitter:
                                 self.exiftool.write_meta(filename_fff)
                                 meta = self.exiftool.meta_from_file(filename_meta)
                         else:
-                            meta = None
+                            # Use first frame's metadata for all frames
+                            # (subsequent frames in SEQ lack calibration data)
+                            meta = first_frame_meta
 
                         image = frame.get_radiometric_image(meta=meta)
                         image += 273.15  # Convert to Kelvin

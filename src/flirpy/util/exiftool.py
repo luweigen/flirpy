@@ -2,6 +2,7 @@ import glob
 import logging
 import os
 import platform
+import shutil
 import subprocess
 import sys
 
@@ -25,17 +26,27 @@ class Exiftool:
                     self.path = pkg_resources.resource_filename(
                         "flirpy", "bin/exiftool.exe"
                     )
-            # Fix problems on ARM platforms
-            elif platform.uname()[4].startswith("arm"):
+            # Fix problems on ARM Linux platforms (e.g. Raspberry Pi).
+            # Exclude macOS (darwin) which also reports arm64 on Apple Silicon.
+            elif (platform.uname()[4].startswith("arm")
+                  and not sys.platform.startswith("darwin")):
                 if os.path.isfile("/usr/bin/exiftool"):
                     self.path = "/usr/bin/exiftool"
                 else:
                     logger.warning("Exiftool not installed, try: apt install exiftool")
             else:
+                # macOS / Linux x86_64: try bundled binary, fall back to system
                 if _resource_files is not None:
                     self.path = str(_resource_files("flirpy").joinpath("bin/exiftool"))
                 else:
                     self.path = pkg_resources.resource_filename("flirpy", "bin/exiftool")
+
+                if not os.path.isfile(self.path):
+                    system_exiftool = shutil.which("exiftool")
+                    if system_exiftool:
+                        self.path = system_exiftool
+                    else:
+                        logger.warning("Exiftool not found")
 
         else:
             self.path = path

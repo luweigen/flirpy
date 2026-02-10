@@ -1,6 +1,9 @@
+import logging
 import math
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 def from_string_or_float(value):
@@ -47,6 +50,10 @@ def raw2temp(raw, meta) -> np.ndarray:
     PF = float(meta["Planck F"])
     E = float(meta["Emissivity"])
     IRT = float(meta["IR Window Transmission"])
+
+    if E <= 0:
+        logger.warning("Emissivity is %s, defaulting to 1.0", E)
+        E = 1.0
     IRWTemp = from_string_or_float(meta["IR Window Temperature"])
     OD = from_string_or_float(meta["Object Distance"])
     ATemp = from_string_or_float(meta["Atmospheric Temperature"])
