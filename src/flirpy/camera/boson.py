@@ -291,7 +291,11 @@ crc_table = [
 ]
 import subprocess
 
-import pkg_resources
+try:
+    from importlib.resources import files as _resource_files
+except ImportError:
+    import pkg_resources
+    _resource_files = None
 
 
 class Boson(Core):
@@ -371,9 +375,12 @@ class Boson(Core):
         res = None
 
         if sys.platform.startswith("win32"):
-            device_check_path = pkg_resources.resource_filename(
-                "flirpy", "bin/find_cameras.exe"
-            )
+            if _resource_files is not None:
+                device_check_path = str(_resource_files("flirpy").joinpath("bin/find_cameras.exe"))
+            else:
+                device_check_path = pkg_resources.resource_filename(
+                    "flirpy", "bin/find_cameras.exe"
+                )
             device_id = int(
                 subprocess.check_output([device_check_path, "FLIR Video"]).decode()
             )

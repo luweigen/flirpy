@@ -5,7 +5,11 @@ import platform
 import subprocess
 import sys
 
-import pkg_resources
+try:
+    from importlib.resources import files as _resource_files
+except ImportError:
+    import pkg_resources
+    _resource_files = None
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +19,12 @@ class Exiftool:
 
         if path is None:
             if sys.platform.startswith("win32"):
-                self.path = pkg_resources.resource_filename(
-                    "flirpy", "bin/exiftool.exe"
-                )
+                if _resource_files is not None:
+                    self.path = str(_resource_files("flirpy").joinpath("bin/exiftool.exe"))
+                else:
+                    self.path = pkg_resources.resource_filename(
+                        "flirpy", "bin/exiftool.exe"
+                    )
             # Fix problems on ARM platforms
             elif platform.uname()[4].startswith("arm"):
                 if os.path.isfile("/usr/bin/exiftool"):
@@ -25,7 +32,10 @@ class Exiftool:
                 else:
                     logger.warning("Exiftool not installed, try: apt install exiftool")
             else:
-                self.path = pkg_resources.resource_filename("flirpy", "bin/exiftool")
+                if _resource_files is not None:
+                    self.path = str(_resource_files("flirpy").joinpath("bin/exiftool"))
+                else:
+                    self.path = pkg_resources.resource_filename("flirpy", "bin/exiftool")
 
         else:
             self.path = path
